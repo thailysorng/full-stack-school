@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
 import { useFormState } from "react-dom";
 import { createTeacher, updateTeacher } from "@/lib/actions";
@@ -15,12 +15,12 @@ import { CldUploadWidget } from "next-cloudinary";
 const TeacherForm = ({
   type,
   data,
-  setOpen,
+  onSuccess,
   relatedData,
 }: {
   type: "create" | "update";
   data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  onSuccess: () => void;
   relatedData?: any;
 }) => {
   const {
@@ -46,15 +46,12 @@ const TeacherForm = ({
     formAction({ ...data, img: img?.secure_url });
   });
 
-  const router = useRouter();
-
   useEffect(() => {
-    if (state.success) {
+    if (state && state.success) {
       toast(`Teacher has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
-      router.refresh();
+      onSuccess();
     }
-  }, [state, router, type, setOpen]);
+  }, [state, type, onSuccess]);
 
   const { subjects } = relatedData;
 

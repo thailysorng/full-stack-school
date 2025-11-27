@@ -6,19 +6,18 @@ import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { useEffect } from "react";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
 
 const SubjectForm = ({
   type,
   data,
-  setOpen,
+  onSuccess,
   relatedData,
 }: {
   type: "create" | "update";
   data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  onSuccess: () => void;
   relatedData?: any;
 }) => {
   const {
@@ -44,15 +43,12 @@ const SubjectForm = ({
     formAction(data);
   });
 
-  const router = useRouter();
-
   useEffect(() => {
     if (state.success) {
       toast(`Subject has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
-      router.refresh();
+      onSuccess();
     }
-  }, [state, router, type, setOpen]);
+  }, [state, type, onSuccess]);
 
   const { teachers } = relatedData;
 

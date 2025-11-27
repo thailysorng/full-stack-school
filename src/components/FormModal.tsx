@@ -22,13 +22,13 @@ const deleteActionMap = {
   student: deleteStudent,
   exam: deleteExam,
 // TODO: OTHER DELETE ACTIONS
-  parent: deleteSubject,
   lesson: deleteSubject,
   assignment: deleteSubject,
   result: deleteSubject,
   attendance: deleteSubject,
   event: deleteSubject,
   announcement: deleteSubject,
+  parent: deleteSubject,
 };
 
 // USE LAZY LOADING
@@ -55,49 +55,49 @@ const ExamForm = dynamic(() => import("./forms/ExamForm"), {
 
 const forms: {
   [key: string]: (
-    setOpen: Dispatch<SetStateAction<boolean>>,
+    onSuccess: () => void,
     type: "create" | "update",
     data?: any,
     relatedData?: any
   ) => JSX.Element;
 } = {
-  subject: (setOpen, type, data, relatedData) => (
+  subject: (onSuccess, type, data, relatedData) => (
     <SubjectForm
       type={type}
       data={data}
-      setOpen={setOpen}
+      onSuccess={onSuccess}
       relatedData={relatedData}
     />
   ),
-  class: (setOpen, type, data, relatedData) => (
+  class: (onSuccess, type, data, relatedData) => (
     <ClassForm
       type={type}
       data={data}
-      setOpen={setOpen}
+      onSuccess={onSuccess}
       relatedData={relatedData}
     />
   ),
-  teacher: (setOpen, type, data, relatedData) => (
+  teacher: (onSuccess, type, data, relatedData) => (
     <TeacherForm
       type={type}
       data={data}
-      setOpen={setOpen}
+      onSuccess={onSuccess}
       relatedData={relatedData}
     />
   ),
-  student: (setOpen, type, data, relatedData) => (
+  student: (onSuccess, type, data, relatedData) => (
     <StudentForm
       type={type}
       data={data}
-      setOpen={setOpen}
+      onSuccess={onSuccess}
       relatedData={relatedData}
     />
   ),
-  exam: (setOpen, type, data, relatedData) => (
+  exam: (onSuccess, type, data, relatedData) => (
     <ExamForm
       type={type}
       data={data}
-      setOpen={setOpen}
+      onSuccess={onSuccess}
       relatedData={relatedData}
     />
     // TODO OTHER LIST ITEMS
@@ -120,6 +120,12 @@ const FormModal = ({
       : "bg-lamaPurple";
 
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const handleSuccess = () => {
+    setOpen(false);
+    router.refresh();
+  };
 
   const Form = () => {
     const [state, formAction] = useFormState(deleteActionMap[table], {
@@ -127,19 +133,19 @@ const FormModal = ({
       error: false,
     });
 
-    const router = useRouter();
-
     useEffect(() => {
       if (state.success) {
-        toast(`${table} has been deleted!`);
-        setOpen(false);
-        router.refresh();
+        toast.success(`${table} has been deleted!`);
+        handleSuccess();
+      } else if (state.error) {
+        const errorMessage = (state as any).message || `Failed to delete ${table}. Please try again.`;
+        toast.error(errorMessage);
       }
-    }, [state, router]);
+    }, [state, table]);
 
     return type === "delete" && id ? (
       <form action={formAction} className="p-4 flex flex-col gap-4">
-        <input type="text | number" name="id" value={id} hidden />
+        <input type="hidden" name="id" defaultValue={id} />
         <span className="text-center font-medium">
           All data will be lost. Are you sure you want to delete this {table}?
         </span>
@@ -148,7 +154,7 @@ const FormModal = ({
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](setOpen, type, data, relatedData)
+      forms[table](handleSuccess, type, data, relatedData)
     ) : (
       "Form not found!"
     );

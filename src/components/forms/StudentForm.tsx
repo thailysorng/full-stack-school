@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   studentSchema,
   StudentSchema,
@@ -25,12 +25,12 @@ import { CldUploadWidget } from "next-cloudinary";
 const StudentForm = ({
   type,
   data,
-  setOpen,
+  onSuccess,
   relatedData,
 }: {
   type: "create" | "update";
   data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  onSuccess: () => void;
   relatedData?: any;
 }) => {
   const {
@@ -57,15 +57,14 @@ const StudentForm = ({
     formAction({ ...data, img: img?.secure_url });
   });
 
-  const router = useRouter();
-
   useEffect(() => {
-    if (state.success) {
-      toast(`Student has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
-      router.refresh();
+    if (state && state.success) {
+      toast.success(`Student has been ${type === "create" ? "created" : "updated"} successfully!`);
+      onSuccess();
+    } else if (state && state.error) {
+      toast.error(`Failed to ${type === "create" ? "create" : "update"} student. Please try again.`);
     }
-  }, [state, router, type, setOpen]);
+  }, [state, type, onSuccess]);
 
   const { grades, classes } = relatedData;
 
@@ -166,13 +165,6 @@ const StudentForm = ({
           register={register}
           error={errors.birthday}
           type="date"
-        />
-        <InputField
-          label="Parent Id"
-          name="parentId"
-          defaultValue={data?.parentId}
-          register={register}
-          error={errors.parentId}
         />
         {data && (
           <InputField

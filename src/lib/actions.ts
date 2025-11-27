@@ -11,7 +11,7 @@ import {
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean; message?: string };
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -27,7 +27,7 @@ export const createSubject = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -52,7 +52,7 @@ export const updateSubject = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -66,17 +66,48 @@ export const deleteSubject = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    // Check if subject has related data
+    const subject = await prisma.subject.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        teachers: true,
+        lessons: true,
+      },
+    });
+
+    if (subject) {
+      const issues = [];
+      if (subject.teachers.length > 0) {
+        issues.push(`${subject.teachers.length} teacher(s)`);
+      }
+      if (subject.lessons.length > 0) {
+        issues.push(`${subject.lessons.length} lesson(s)`);
+      }
+
+      if (issues.length > 0) {
+        return { 
+          success: false, 
+          error: true, 
+          message: `Cannot delete subject. This subject has ${issues.join(", ")} associated. Please remove them first.` 
+        };
+      }
+    }
+
     await prisma.subject.delete({
       where: {
         id: parseInt(id),
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to delete subject. Please check if it has associated data." 
+    };
   }
 };
 
@@ -89,7 +120,7 @@ export const createClass = async (
       data,
     });
 
-    // revalidatePath("/list/class");
+    revalidatePath("/list/classes");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -109,7 +140,7 @@ export const updateClass = async (
       data,
     });
 
-    // revalidatePath("/list/class");
+    revalidatePath("/list/classes");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -123,17 +154,56 @@ export const deleteClass = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    // Check if class has related data
+    const classItem = await prisma.class.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        students: true,
+        lessons: true,
+        events: true,
+        announcements: true,
+      },
+    });
+
+    if (classItem) {
+      const issues = [];
+      if (classItem.students.length > 0) {
+        issues.push(`${classItem.students.length} student(s)`);
+      }
+      if (classItem.lessons.length > 0) {
+        issues.push(`${classItem.lessons.length} lesson(s)`);
+      }
+      if (classItem.events.length > 0) {
+        issues.push(`${classItem.events.length} event(s)`);
+      }
+      if (classItem.announcements.length > 0) {
+        issues.push(`${classItem.announcements.length} announcement(s)`);
+      }
+
+      if (issues.length > 0) {
+        return { 
+          success: false, 
+          error: true, 
+          message: `Cannot delete class. This class has ${issues.join(", ")} associated. Please remove them first.` 
+        };
+      }
+    }
+
     await prisma.class.delete({
       where: {
         id: parseInt(id),
       },
     });
 
-    // revalidatePath("/list/class");
+    revalidatePath("/list/classes");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to delete class. Please check if it has associated data." 
+    };
   }
 };
 
@@ -171,7 +241,7 @@ export const createTeacher = async (
       },
     });
 
-    // revalidatePath("/list/teachers");
+    revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -217,7 +287,7 @@ export const updateTeacher = async (
         },
       },
     });
-    // revalidatePath("/list/teachers");
+    revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -231,7 +301,44 @@ export const deleteTeacher = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    await clerkClient.users.deleteUser(id);
+    // Check if teacher has related data
+    const teacher = await prisma.teacher.findUnique({
+      where: { id },
+      include: {
+        subjects: true,
+        lessons: true,
+        classes: true,
+      },
+    });
+
+    if (teacher) {
+      const issues = [];
+      if (teacher.subjects.length > 0) {
+        issues.push(`${teacher.subjects.length} subject(s)`);
+      }
+      if (teacher.lessons.length > 0) {
+        issues.push(`${teacher.lessons.length} lesson(s)`);
+      }
+      if (teacher.classes.length > 0) {
+        issues.push(`${teacher.classes.length} class(es) as supervisor`);
+      }
+
+      if (issues.length > 0) {
+        return { 
+          success: false, 
+          error: true, 
+          message: `Cannot delete teacher. This teacher has ${issues.join(", ")} associated. Please remove or reassign them first.` 
+        };
+      }
+    }
+
+    // Try to delete from Clerk, but don't fail if user doesn't exist
+    try {
+      await clerkClient.users.deleteUser(id);
+    } catch (clerkErr: any) {
+      // If Clerk user doesn't exist (e.g., seed data), continue with database deletion
+      console.log("Clerk user deletion skipped:", clerkErr.message);
+    }
 
     await prisma.teacher.delete({
       where: {
@@ -239,11 +346,15 @@ export const deleteTeacher = async (
       },
     });
 
-    // revalidatePath("/list/teachers");
+    revalidatePath("/list/teachers");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to delete teacher. Please check if it has associated data." 
+    };
   }
 };
 
@@ -285,11 +396,10 @@ export const createStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
       },
     });
 
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -330,10 +440,10 @@ export const updateStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
       },
     });
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
+    revalidatePath(`/list/students/${data.id}`);
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -347,7 +457,13 @@ export const deleteStudent = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    await clerkClient.users.deleteUser(id);
+    // Try to delete from Clerk, but don't fail if user doesn't exist
+    try {
+      await clerkClient.users.deleteUser(id);
+    } catch (clerkErr: any) {
+      // If Clerk user doesn't exist (e.g., seed data), continue with database deletion
+      console.log("Clerk user deletion skipped:", clerkErr.message);
+    }
 
     await prisma.student.delete({
       where: {
@@ -355,11 +471,15 @@ export const deleteStudent = async (
       },
     });
 
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to delete student. Please check if it has associated data." 
+    };
   }
 };
 
@@ -393,7 +513,7 @@ export const createExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -434,7 +554,7 @@ export const updateExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -452,6 +572,22 @@ export const deleteExam = async (
   // const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   try {
+    // Check if exam has related data
+    const exam = await prisma.exam.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        results: true,
+      },
+    });
+
+    if (exam && exam.results.length > 0) {
+      return { 
+        success: false, 
+        error: true, 
+        message: `Cannot delete exam. This exam has ${exam.results.length} result(s) associated. Please remove them first.` 
+      };
+    }
+
     await prisma.exam.delete({
       where: {
         id: parseInt(id),
@@ -459,10 +595,14 @@ export const deleteExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to delete exam. Please check if it has associated data." 
+    };
   }
 };

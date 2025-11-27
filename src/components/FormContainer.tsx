@@ -6,7 +6,6 @@ export type FormContainerProps = {
   table:
     | "teacher"
     | "student"
-    | "parent"
     | "subject"
     | "class"
     | "lesson"
@@ -15,7 +14,8 @@ export type FormContainerProps = {
     | "result"
     | "attendance"
     | "event"
-    | "announcement";
+    | "announcement"
+    | "parent";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
