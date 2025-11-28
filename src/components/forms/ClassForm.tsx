@@ -16,18 +16,19 @@ import {
   updateSubject,
 } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const ClassForm = ({
   type,
   data,
-  onSuccess,
+  setOpen,
   relatedData,
 }: {
   type: "create" | "update";
   data?: any;
-  onSuccess: () => void;
+  setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
   const {
@@ -39,7 +40,7 @@ const ClassForm = ({
   });
 
   // AFTER REACT 19 IT'LL BE USEACTIONSTATE
-
+  
   const [state, formAction] = useFormState(
     type === "create" ? createClass : updateClass,
     {
@@ -53,12 +54,15 @@ const ClassForm = ({
     formAction(data);
   });
 
+  const router = useRouter();
+
   useEffect(() => {
     if (state.success) {
-      toast(`Class has been ${type === "create" ? "created" : "updated"}!`);
-      onSuccess();
+      toast(`Teacher has been ${type === "create" ? "created" : "updated"}!`);
+      setOpen(false);
+      router.refresh();
     }
-  }, [state, type, onSuccess]);
+  }, [state, router, type, setOpen]);
 
   const { teachers, grades } = relatedData;
 
