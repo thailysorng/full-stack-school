@@ -187,7 +187,7 @@ const TeacherForm = ({
           uploadPreset="school"
           onSuccess={(result, { widget }) => {
             setImg(result.info);
-            widget.close();
+            // widget.close();
           }}
         >
           {({ open }) => {
