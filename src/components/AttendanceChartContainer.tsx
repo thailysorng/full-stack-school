@@ -23,8 +23,6 @@ const AttendanceChartContainer = async () => {
     },
   });
 
-  // console.log(data)
-
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
   const attendanceMap: { [key: string]: { present: number; absent: number } } =

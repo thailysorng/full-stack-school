@@ -183,25 +183,50 @@ const TeacherForm = ({
             </p>
           )}
         </div>
-        <CldUploadWidget
-          uploadPreset="school"
-          onSuccess={(result, { widget }) => {
-            setImg(result.info);
-            // widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div
-                className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                onClick={() => open()}
-              >
-                <Image src="/upload.png" alt="" width={28} height={28} />
-                <span>Upload a photo</span>
-              </div>
-            );
-          }}
-        </CldUploadWidget>
+
+        {/* UPLOAD IMAGE (hidden when img exists) */}
+        {!img && (
+          <CldUploadWidget
+            uploadPreset="school"
+            onSuccess={(result) => {
+              setImg(result.info);
+            }}
+          >
+            {({ open }) => {
+              return (
+                <div
+                  className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
+                  onClick={() => open()}
+                >
+                  <Image src="/upload.png" alt="" width={28} height={28} />
+                  <span>Upload a photo</span>
+                </div>
+              );
+            }}
+          </CldUploadWidget>
+        )}
+
+        {/* IMAGE PREVIEW + REMOVE */}
+        {img?.secure_url && (
+          <div className="mt-4 flex flex-col items-start gap-2">
+            <Image
+              src={img.secure_url}
+              alt="Uploaded"
+              width={200}
+              height={200}
+              className="rounded-md object-cover"
+            />
+
+            <button
+              type="button"
+              onClick={() => setImg(null)}
+              className="text-xs text-red-500 underline"
+            >
+              Remove image
+            </button>
+          </div>
+        )}
+        
       </div>
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>

@@ -26,7 +26,6 @@ const { userId, sessionClaims } = auth();
 const role = (sessionClaims?.metadata as { role?: string })?.role;
 const currentUserId = userId;
 
-
 const columns = [
   {
     header: "Subject Name",
@@ -166,9 +165,10 @@ const renderRow = (item: ExamList) => (
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {(role === "admin" || role === "teacher") && (
-              <FormContainer table="exam" type="create" />
-            )}
+            {role === "admin" ||
+              (role === "teacher" && (
+                <FormContainer table="exam" type="create" />
+              ))}
           </div>
         </div>
       </div>
